@@ -1,0 +1,116 @@
+---
+title: "Final"
+author: "Charity"
+date: "2024-06-25"
+output: html_document
+---
+
+## Introduction
+
+Welcome to my analysis using R Markdown. In this document, I'll explore the distribution of shooting incidents across different boroughs and COVID-19 cases by region. Through visualizations and data insights, we'll uncover patterns and trends to gain a deeper understanding of these phenomena.
+
+### About the Data
+
+This dataset is invaluable for identifying hotspots, demographic patterns, and potential factors contributing to incidents. By leveraging R Markdown and its powerful data analysis capabilities, we aim to provide meaningful visualizations and insights that can inform public policy and community initiatives.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(dplyr)
+library(readr)
+library(lubridate)  # For date manipulation if needed
+library(knitr)  # For kable function if tables are also included
+library(tidyr)      # For pivot_longer function
+
+
+
+# Define the base URL and filenames for COVID-19 datasets
+base_url <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series"
+filenames <- c(
+  "/time_series_covid19_confirmed_global.csv",
+  "/time_series_covid19_deaths_global.csv",
+  "/time_series_covid19_confirmed_US.csv",
+  "/time_series_covid19_deaths_US.csv"
+)
+
+# Load and process COVID-19 datasets
+confirmed_global <- read_csv(paste0(base_url, filenames[1]))
+deaths_global <- read_csv(paste0(base_url, filenames[2]))
+confirmed_US <- read_csv(paste0(base_url, filenames[3]))
+deaths_US <- read_csv(paste0(base_url, filenames[4]))
+
+# Clean and tidy the global cases data
+confirmed_global_tidy <- confirmed_global %>%
+  select(-Lat, -Long) %>%
+  pivot_longer(cols = -c(`Province/State`, `Country/Region`), 
+               names_to = "date", 
+               values_to = "cases") %>%
+  rename(province_state = `Province/State`, country_region = `Country/Region`) %>%
+  mutate(date = mdy(date))
+
+# Clean and tidy the global deaths data
+deaths_global_tidy <- deaths_global %>%
+  select(-Lat, -Long) %>%
+  pivot_longer(cols = -c(`Province/State`, `Country/Region`), 
+               names_to = "date", 
+               values_to = "deaths") %>%
+  rename(province_state = `Province/State`, country_region = `Country/Region`) %>%
+  mutate(date = mdy(date))
+
+# Combine cases and deaths into one dataset
+global <- left_join(confirmed_global_tidy, deaths_global_tidy, 
+                    by = c("province_state", "country_region", "date"))
+# Summarize COVID-19 data by region and date
+summary_data <- global %>%
+  group_by(country_region, date) %>%
+  summarize(cases = sum(cases, na.rm = TRUE),
+            deaths = sum(deaths, na.rm = TRUE)) %>%
+  ungroup()
+
+## Distribution of COVID-19 Cases by Date
+
+## Distribution of COVID-19 Cases by Date
+
+
+```
+
+## Distribution of COVID-19 Cases by Date
+```{r Cases-by-Date, echo=FALSE}
+# Plotting COVID-19 cases by date 
+ggplot(data = global, aes(x = date, y = cases)) +
+  geom_line(color = "steelblue", linewidth = 1, show.legend = FALSE) +  # Customize line color and size
+  labs(title = "Cases by Date",
+       x = "Date",
+       y = "Cases") +
+  theme(panel.background = element_rect(fill = "pink"))  # Setting the background color to pink
+
+```       
+
+## Top Ten Countries with Highest COVID-19 Deaths
+```{r incidents-by-year, echo=FALSE}
+# Summarize total deaths by country
+summary_data <- global %>%
+  group_by(country_region) %>%
+  summarize(total_deaths = sum(deaths, na.rm = TRUE)) %>%
+  ungroup()
+
+# Sort data by total deaths and select top ten countries
+top_ten <- summary_data %>%
+  arrange(desc(total_deaths)) %>%
+  slice_head(n = 10)
+
+# Plotting deaths by country as a scatter plot 
+ggplot(data = top_ten, aes(x = country_region, y = total_deaths)) +
+  geom_point(color = "skyblue", size = 3) +  # Scatter plot with points colored skyblue
+  labs(title = "Top Ten Countries with Highest COVID-19 Deaths",
+       x = "Country",
+       y = "Total Deaths") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for better readability
+```
+
+
+
+
+
+### Conclusions
+This analysis has provided insights into shooting incidents across boroughs and the impact of COVID-19. However, it's important to recognize potential biases in the data and analysis. The COVID-19 data may be biased due to variations in testing, reporting standards, and demographic representation. Our analysis approach, focused on specific regions, could introduce selection bias. Moving forward, incorporating diverse data sources and transparent reporting of methodologies will enhance the accuracy and relevance of our findings in informing effective public policies and community interventions.
